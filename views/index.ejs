@@ -1,0 +1,146 @@
+<!-- Main view template for displaying and managing expenses, including forms for adding todos and displaying existing expenses with options to toggle completion and delete -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <link rel="stylesheet" href="/style.css"> <!-- Link to the stylesheet -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"> <!-- Link to Font Awesome for icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"> <!-- Link to Google Fonts for Poppins font -->
+    <link rel="icon" href="/icon.ico" type="image/x-icon"> <!-- Link to the favicon -->
+</head>
+<body>
+    <div class="container">
+        <h1>Expense Tracker</h1>
+        <div id="expensesContainer">
+            <% if (expenses && expenses.length > 0) { %> <!-- Check if there are any expenses -->
+                <% expenses.forEach(expense => { %> <!-- Loop through each expense -->
+                    <div id="expense-<%= expense._id %>">
+                        <label>
+                            <input type="checkbox" onchange="toggleExpense('<%= expense._id %>', this.checked)" >
+                            <span class=<%= expense.description %><%= expense.amount %></span> <!-- Expense description with conditional class for completed status -->
+                        </label>
+                        <i class="fas fa-trash delete-icon" onclick="deleteExpense('<%= expense._id %>')" ></i> <!-- Delete icon to remove the expense -->
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <p id="noExpenses">No expenses found</p> <!-- Message displayed if there are no expenses -->
+            <% } %>
+        </div>
+        <form id="addExpenseForm" onsubmit="addExpense(); return false;"> <!-- Form to add a new expense -->
+            <input type="text" name="description" placeholder="Add new expense" id="expenseDescription">
+            <button type="submit">Add</button>
+        </form>
+        <a href="/logout">Logout</a> <!-- Link to logout -->
+    </div>
+
+    <script>
+        // Function to toggle the completion status of a expense
+        async function toggleExpense(expenseId, completed) {
+            try {
+                console.log(`Toggling expense ${expenseId} to ${completed}`);
+                const response = await fetch(`/expenses/toggle/${expenseId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ completed })
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Failed to toggle expense: ${errorText}`);
+                }
+
+                const expenseDiv = document.getElementById(`expense-${expenseId}`);
+                const expenseSpan = expenseDiv.querySelector('span');
+
+                if (!expenseSpan) {
+                    throw new Error(`Span element not found for expense ${expenseId}`);
+                }
+
+                if (completed) {
+                    expenseSpan.classList.add('completed');
+                } else {
+                    expenseSpan.classList.remove('completed');
+                }
+
+                console.log('Expense toggled successfully');
+            } catch (error) {
+                console.error('Error toggling expense:', error.message);
+                alert(`Failed to toggle expense: ${error.message}`);
+            }
+        }
+
+        // Function to add a new expense
+        async function addExpense() {
+            const description = document.getElementById('expenseDescription').value;
+            try {
+                const response = await fetch('/expenses', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ description })
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Failed to add expense: ${errorText}`);
+                }
+                const addedExpense = await response.json();
+                console.log('Added new expense:', addedExpense);
+
+                const noExpensesMessage = document.getElementById('noExpenses');
+                if (noExpensesMessage) {
+                    noExpensesMessage.remove();
+                }
+
+                const expensesContainer = document.getElementById('expensesContainer');
+                const newExpenseDiv = document.createElement('div');
+                newExpenseDiv.id = `expense-${addedExpense._id}`;
+                const newExpenseLabel = document.createElement('label');
+                const newExpenseCheckbox = document.createElement('input');
+                newExpenseCheckbox.type = 'checkbox';
+                newExpenseCheckbox.onchange = function() { toggleExpense(addedExpense._id, this.checked); };
+                const newExpenseSpan = document.createElement('span');
+                newExpenseSpan.appendChild(document.createTextNode(addedExpense.description));
+                newExpenseLabel.appendChild(newExpenseCheckbox);
+                newExpenseLabel.appendChild(newExpenseSpan);
+                newExpenseDiv.appendChild(newExpenseLabel);
+
+                const deleteIcon = document.createElement('i');
+                deleteIcon.className = 'fas fa-trash delete-icon';
+                deleteIcon.onclick = function() { deleteExpense(addedExpense._id); };
+                newExpenseDiv.appendChild(deleteIcon);
+
+                expensesContainer.appendChild(newExpenseDiv);
+
+                document.getElementById('expenseDescription').value = ''; // Clear the input field
+            } catch (error) {
+                console.error('Failed to add expense:', error.message);
+                alert(`Failed to add expense: ${error.message}`);
+            }
+        }
+
+        // Function to delete a expense
+        async function deleteExpense(expenseId) {
+            try {
+                const response = await fetch(`/expenses/${expenseId}`, {
+                    method: 'DELETE',
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Failed to delete expense: ${errorText}`);
+                }
+
+                const expenseDiv = document.getElementById(`expense-${expenseId}`);
+                if (expenseDiv) {
+                    expenseDiv.remove();
+                }
+
+                console.log('Expense deleted successfully');
+            } catch (error) {
+                console.error('Error deleting expense:', error.message);
+                alert(`Failed to delete expense: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

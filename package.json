@@ -1,9 +1,9 @@
 {
   "name": "myexpensetracker",
   "version": "1.0.0",
-  "main": "expense.js",
+  "main": "expensetracker.js",
   "scripts": {
-    "start": "node expense.js",
+    "start": "node expensetracker.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   
